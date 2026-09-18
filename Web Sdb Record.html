@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rangking Fight | sdb</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        /* RESET & BASE STYLES */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* HEADER & NAVIGATION */
+        header { background-color: #121212; border-bottom: 1px solid #262626; position: sticky; top: 0; z-index: 100; }
+        .header-container { max-width: 800px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .brand-logo { display: flex; align-items: center; gap: 8px; }
+        .brand-logo i { color: #f59e0b; font-size: 1.2rem; }
+        .brand-title { font-size: 1.25rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; background: linear-gradient(135deg, #fde047 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .secret-trigger { background: #1e1e1e; border: 1px solid #333; padding: 4px 10px; border-radius: 6px; cursor: pointer; user-select: none; }
+        .secret-trigger span { color: #f59e0b; font-weight: 800; font-size: 0.9rem; }
+        
+        nav { display: flex; overflow-x: auto; background: #121212; max-width: 800px; margin: 0 auto; border-top: 1px solid #1f1f1f; }
+        nav::-webkit-scrollbar { display: none; }
+        .nav-btn { background: none; border: none; color: #888; padding: 12px 16px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .nav-btn.active { color: #f59e0b; border-bottom-color: #f59e0b; }
+        .nav-btn.admin-btn { color: #ef4444; display: none; }
+
+        /* MAIN CONTENT CONTAINER */
+        main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 16px; }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .section-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .filter-select { background: #1a1a1a; border: 1px solid #333; color: #f59e0b; font-weight: 700; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; outline: none; }
+
+        /* CARDS & TABLES */
+        .glass-card { background: #141414; border: 1px solid #262626; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        .data-table th { background: #1a1a1a; color: #888; padding: 12px; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid #262626; }
+        .data-table td { padding: 12px; border-bottom: 1px solid #1a1a1a; }
+        
+        .clickable-name { color: #fde047; font-weight: 700; cursor: pointer; text-decoration: underline; text-decoration-color: #555; }
+        .clickable-name:hover { color: #fff; }
+
+        .rank-badge { display: inline-flex; justify-content: center; align-items: center; width: 26px; height: 26px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; }
+        tr:nth-child(1) .rank-badge { background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #AA771C); color: #000; }
+        tr:nth-child(2) .rank-badge { background: linear-gradient(135deg, #B5B6B2, #E0E0E0, #9E9E9E, #8A8A8A); color: #000; }
+        tr:nth-child(3) .rank-badge { background: linear-gradient(135deg, #CD7F32, #F3A183, #8C5523, #754411); color: #fff; }
+        tr:nth-child(n+4) .rank-badge { background: #222; color: #777; border: 1px solid #333; }
+
+        /* FORMS & INPUTS */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 4px; text-transform: uppercase; }
+        input[type="text"], input[type="number"], input[type="url"], input[type="date"], select { width: 100%; background: #0a0a0a; border: 1px solid #262626; border-radius: 8px; padding: 10px; color: #fff; font-size: 0.85rem; outline: none; }
+        input:focus, select:focus { border-color: #f59e0b; }
+        
+        /* Pewarnaan Khusus Datalist Textbox (Cari Atlet) */
+        input[list] { background: #1e1e1e; border: 1px solid #444; border-left: 4px solid #f59e0b; }
+        
+        .btn-submit { width: 100%; background: #d97706; color: #000; font-weight: 800; padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 8px; }
+        .btn-submit.green { background: #16a34a; color: #fff; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .db-status { font-size: 0.7rem; color: #22c55e; display: flex; align-items: center; gap: 4px; padding-right: 10px; }
+
+        /* MODAL PROFIL */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 20px 10px; backdrop-filter: blur(5px); }
+        .modal-content { background: #ffffff; color: #000; width: 100%; max-width: 500px; border-radius: 12px; overflow: hidden; position: relative; margin-top: 20px; }
+        .modal-header { background: #111; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #cc0000; }
+        .close-btn { color: #fff; font-size: 1.5rem; cursor: pointer; background: none; border: none; }
+        .record-banner { display: flex; justify-content: center; gap: 10px; padding: 20px; background: #f8f9fa; }
+        .record-box { flex: 1; text-align: center; border-radius: 6px; padding: 10px 0; max-width: 100px; color: white; }
+        .box-win { background: #16a34a; } .box-loss { background: #dc2626; } .box-draw { background: #64748b; }
+        .box-num { font-size: 2rem; font-weight: 900; line-height: 1; }
+        .box-ko { font-size: 0.75rem; font-weight: 700; background: #fff; padding: 2px; margin-top: 5px; }
+        .box-win .box-ko { color: #16a34a; } .box-loss .box-ko { color: #dc2626; }
+        .profile-pic-container { text-align: center; background: #f8f9fa; padding-bottom: 20px; }
+        .profile-pic { width: 200px; height: 250px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; background: #eee; }
+        .fighter-name-title { font-size: 1.5rem; font-weight: 900; text-align: center; padding: 10px; background: #fff; }
+        .bio-table { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
+        .bio-table tr { border-bottom: 1px solid #eee; } .bio-table td { padding: 10px; }
+        .bio-table td:first-child { font-weight: 700; color: #555; text-align: right; width: 40%; } .bio-table td:last-child { font-weight: 600; color: #000; }
+        .prof-bout-title { text-align: center; font-size: 1.1rem; font-weight: 800; padding: 15px; background: #f1f1f1; border-top: 2px solid #ccc; border-bottom: 2px solid #ccc; }
+        .prof-bout-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; background: #fff; }
+        .prof-bout-table td { padding: 12px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .res-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 0.75rem; text-align: center; min-width: 35px; }
+        .badge-W { background: #16a34a; } .badge-L { background: #dc2626; } .badge-D { background: #64748b; }
+    </style>
+</head>
+<body>
+
+    <!-- DATALIST UNTUK PENCARIAN ATLET OTOMATIS (Akan diisi via JS) -->
+    <datalist id="fighter-list"></datalist>
+
+    <header>
+        <div class="header-container">
+            <div class="brand-logo"><i class="fa-solid fa-crown"></i><div class="brand-title">Rangking Fight</div></div>
+            <div style="display: flex; align-items: center;">
+                <div class="db-status" id="db-status"><i class="fa-solid fa-wifi"></i> Live</div>
+                <div class="secret-trigger" id="secret-btn"><span>sdb</span></div>
+            </div>
+        </div>
+        <nav>
+            <button class="nav-btn active" onclick="switchTab('rankings')">Peringkat</button>
+            <button class="nav-btn" onclick="switchTab('bouts')">Jadwal & Hasil</button>
+            <button class="nav-btn" onclick="switchTab('h2h')">Head to Head</button>
+            <button class="nav-btn" onclick="switchTab('boxers')">Database</button>
+            <button class="nav-btn admin-btn" id="nav-admin" onclick="switchTab('admin')"><i class="fa-solid fa-lock-open"></i> Admin</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- TAB PERINGKAT -->
+        <section id="tab-rankings" class="tab-section active">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-trophy"></i> Klasemen Atlet</div>
+                <select id="filter-div" class="filter-select" onchange="renderRankings()">
+                    <option value="ALL">Semua Kelas</option>
+                    <option value="Minimumweight">Minimumweight (≤ 48 kg)</option>
+                    <option value="Flyweight">Flyweight (48–51 kg)</option>
+                    <option value="Bantamweight">Bantamweight (51–54 kg)</option>
+                    <option value="Featherweight">Featherweight (54–57 kg)</option>
+                    <option value="Lightweight">Lightweight (57–60 kg)</option>
+                    <option value="Light Welterweight">Light Welterweight (60–63.5 kg)</option>
+                    <option value="Welterweight">Welterweight (63.5–67 kg)</option>
+                    <option value="Light Middleweight">Light Middleweight (67–71 kg)</option>
+                    <option value="Middleweight">Middleweight (71–75 kg)</option>
+                    <option value="Light Heavyweight">Light Heavyweight (75–80 kg)</option>
+                    <option value="Heavyweight">Heavyweight (80–92 kg)</option>
+                    <option value="Super Heavyweight">Super Heavyweight (>92 kg)</option>
+                </select>
+            </div>
+            <div class="glass-card">
+                <table class="data-table">
+                    <thead><tr><th style="width: 40px; text-align: center;">Rnk</th><th>Nama Atlet</th><th>Divisi</th><th style="text-align: center;">Rekor</th></tr></thead>
+                    <tbody id="list-rankings"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- TAB JADWAL -->
+        <section id="tab-bouts" class="tab-section"><div id="list-bouts"></div></section>
+        
+        <!-- TAB HEAD TO HEAD (Sekarang pakai sistem ketik / datalist) -->
+        <section id="tab-h2h" class="tab-section">
+            <div class="section-header"><div class="section-title"><i class="fa-solid fa-code-compare"></i> Tale of the Tape</div></div>
+            <div class="glass-card" style="padding: 16px;">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label style="color: #ef4444;">Sudut Merah</label>
+                        <input type="text" id="h2h-1" list="fighter-list" placeholder="Ketik nama atlet..." onchange="renderH2H()" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #3b82f6;">Sudut Biru</label>
+                        <input type="text" id="h2h-2" list="fighter-list" placeholder="Ketik nama atlet..." onchange="renderH2H()" autocomplete="off">
+                    </div>
+                </div>
+                <div id="h2h-view" style="text-align: center; color: #666; font-size: 0.85rem; padding: 20px 0; border-top: 1px solid #262626; margin-top: 12px;">
+                    Ketik & pilih 2 atlet untuk membandingkan rekor.
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB DATABASE -->
+        <section id="tab-boxers" class="tab-section"><div id="grid-boxers" class="grid-2"></div></section>
+
+        <!-- TAB ADMIN -->
+        <section id="tab-admin" class="tab-section">
+            <!-- 1. DAFTAR ATLET -->
+            <div class="glass-card" style="padding: 16px;">
+                <div style="color: #f59e0b; font-weight: 800; font-size: 0.85rem; margin-bottom: 12px;">1. DAFTARKAN ATLET BARU</div>
+                <form onsubmit="addBoxer(event)">
+                    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="add-name" required></div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Kelas Berat / Divisi</label>
+                            <select id="add-div" required>
+                                <option value="" disabled selected>-- Pilih Divisi --</option>
+                                <option value="Minimumweight">Minimumweight (≤ 48 kg)</option>
+                                <option value="Flyweight">Flyweight (48–51 kg)</option>
+                                <option value="Bantamweight">Bantamweight (51–54 kg)</option>
+                                <option value="Featherweight">Featherweight (54–57 kg)</option>
+                                <option value="Lightweight">Lightweight (57–60 kg)</option>
+                                <option value="Light Welterweight">Light Welterweight (60–63.5 kg)</option>
+                                <option value="Welterweight">Welterweight (63.5–67 kg)</option>
+                                <option value="Light Middleweight">Light Middleweight (67–71 kg)</option>
+                                <option value="Middleweight">Middleweight (71–75 kg)</option>
+                                <option value="Light Heavyweight">Light Heavyweight (75–80 kg)</option>
+                                <option value="Heavyweight">Heavyweight (80–92 kg)</option>
+                                <option value="Super Heavyweight">Super Heavyweight (>92 kg)</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Kebangsaan</label><input type="text" id="add-nat" placeholder="Cth: Indonesia"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Gaya Bertarung</label>
+                            <select id="add-stance">
+                                <option value="Ortodoks">Ortodoks (Kanan)</option>
+                                <option value="Southpaw">Southpaw (Kidal)</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Tinggi Badan</label><input type="text" id="add-height" placeholder="Cth: 175cm"></div>
+                    </div>
+                    <div class="form-group"><label>Link URL Foto (Opsional)</label><input type="url" id="add-photo" placeholder="https://link.com/foto.jpg"></div>
+                    
+                    <div class="form-group">
+                        <label>Rekor Awal (Menang - Kalah - Seri - KO)</label>
+                        <div class="grid-4">
+                            <input type="number" id="add-w" value="0"><input type="number" id="add-l" value="0"><input type="number" id="add-d" value="0"><input type="number" id="add-ko" value="0">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit">Simpan Profil</button>
+                </form>
+            </div>
+
+            <!-- 2. HASIL PERTANDINGAN (Menggunakan fitur ketik & cari / Datalist) -->
+            <div class="glass-card" style="padding: 16px;">
+                <div style="color: #22c55e; font-weight: 800; font-size: 0.85rem; margin-bottom: 12px;">2. INPUT HASIL PERTANDINGAN</div>
+                <form onsubmit="addBout(event)">
+                    <div class="form-group">
+                        <label>Petarung A (Ketik Nama)</label>
+                        <input type="text" id="bout-1" list="fighter-list" placeholder="Cari nama atlet..." required autocomplete="off">
+                    </div>
+                    
+                    <div style="text-align:center; color:#555; font-weight:bold; margin:10px 0;">VS</div>
+                    
+                    <div class="form-group">
+                        <label>Petarung B (Ketik Nama)</label>
+                        <input type="text" id="bout-2" list="fighter-list" placeholder="Cari nama atlet..." required autocomplete="off">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Hasil Akhir</label>
+                        <select id="bout-winner" required>
+                            <option value="" disabled selected>-- Tentukan Pemenang --</option>
+                            <option value="1">Petarung A Menang</option>
+                            <option value="2">Petarung B Menang</option>
+                            <option value="DRAW">Seri (Draw)</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+                        <input type="checkbox" id="bout-ko" style="width:auto;"> <label for="bout-ko" style="color:#aaa; margin:0;">Menang via KO/TKO (+1 Nilai KO)</label>
+                    </div>
+                    <input type="date" id="bout-date" required style="margin-top:10px;">
+                    <button type="submit" class="btn-submit green">Proses Hasil</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL PROFIL (BOXREC STYLE) -->
+    <div class="modal-overlay" id="profile-modal" onclick="closeProfile(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div style="font-weight: 900; font-style: italic; font-size: 1.2rem;">SDB Fight Rec</div>
+                <button class="close-btn" onclick="closeProfile(event)">&times;</button>
+            </div>
+            <div class="fighter-name-title" id="mod-name">Nama Petarung</div>
+            
+            <div class="record-banner">
+                <div class="record-box box-win">
+                    <div class="box-num" id="mod-w">0</div><div class="box-ko" id="mod-ko-w">0 KO</div>
+                </div>
+                <div class="record-box box-loss">
+                    <div class="box-num" id="mod-l">0</div><div class="box-ko">0 KO</div>
+                </div>
+                <div class="record-box box-draw">
+                    <div class="box-num" id="mod-d">0</div><div class="box-ko" style="color: #64748b;">Draw</div>
+                </div>
+            </div>
+
+            <div class="profile-pic-container">
+                <img id="mod-photo" class="profile-pic" src="" alt="Foto Petarung">
+            </div>
+
+            <table class="bio-table">
+                <tr><td>Divisi</td><td id="mod-div"></td></tr>
+                <tr><td>pertarungan</td><td id="mod-bouts"></td></tr>
+                <tr><td>rasio KO</td><td id="mod-kopct"></td></tr>
+                <tr><td>Daerah</td><td id="mod-nat"></td></tr>
+                <tr><td>Alias</td><td id="mod-stance"></td></tr>
+                <tr><td>tinggi</td><td id="mod-height"></td></tr>
+            </table>
+
+            <div class="prof-bout-title">Fight Record</div>
+            <table class="prof-bout-table">
+                <tbody id="mod-history"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvCTnP9xmMYdtzbItnG9s-jzJ2LP143S8",
+            authDomain: "juma-elok.firebaseapp.com",
+            databaseURL: "https://juma-elok-default-rtdb.firebaseio.com",
+            projectId: "juma-elok",
+            storageBucket: "juma-elok.firebasestorage.app",
+            messagingSenderId: "703237300210",
+            appId: "1:703237300210:web:e21f5bdea56000359a156b"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const fightRef = db.ref('rangking_fight_data');
+
+        let boxers = [];
+        let bouts = [];
+
+        fightRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                boxers = data.boxers || [];
+                bouts = data.bouts || [];
+            }
+            renderUI();
+        });
+
+        function saveDB() {
+            fightRef.set({ boxers, bouts });
+        }
+
+        // SECRET ADMIN
+        let clickCount = 0, clickTimer;
+        document.getElementById('secret-btn').addEventListener('click', () => {
+            clickCount++; clearTimeout(clickTimer);
+            if (clickCount >= 10) {
+                document.getElementById('nav-admin').style.display = 'inline-block';
+                switchTab('admin'); clickCount = 0;
+            } else { clickTimer = setTimeout(() => { clickCount = 0; }, 2000); }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if(tabId === 'h2h') renderH2H();
+        }
+
+        function renderUI() {
+            renderRankings();
+            renderBouts();
+            renderBoxers();
+            populateSearchList();
+        }
+
+        function renderRankings() {
+            const tbody = document.getElementById('list-rankings');
+            const filterVal = document.getElementById('filter-div').value;
+            let filtered = filterVal !== "ALL" ? boxers.filter(b => b.div === filterVal) : boxers;
+            let sorted = [...filtered].sort((a, b) => b.win - a.win || b.ko - a.ko);
+
+            tbody.innerHTML = sorted.map((b, idx) => `
+                <tr>
+                    <td style="text-align: center;"><span class="rank-badge">${idx + 1}</span></td>
+                    <td><span class="clickable-name" onclick="openProfile('${b.id}')">${b.name}</span></td>
+                    <td style="color: #888;">${b.div}</td>
+                    <td style="text-align: center; font-weight: 700;">
+                        <span style="color: #22c55e;">${b.win}</span>-<span style="color: #ef4444;">${b.loss}</span>-<span style="color: #888;">${b.draw}</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderBouts() {
+            const container = document.getElementById('list-bouts');
+            container.innerHTML = [...bouts].reverse().map(b => `
+                <div class="glass-card" style="padding: 14px;">
+                    <div style="font-size: 0.7rem; color: #888;">${b.date || 'Tanggal Tidak Diketahui'}</div>
+                    <div style="display: flex; justify-content: space-between; font-weight: 800; margin: 8px 0; font-size: 0.9rem;">
+                        <span class="clickable-name" onclick="openProfileByName('${b.f1}')">${b.f1}</span>
+                        <span style="color: #444;">VS</span>
+                        <span class="clickable-name" onclick="openProfileByName('${b.f2}')">${b.f2}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: ${b.res.includes('Seri') ? '#888' : '#22c55e'};">${b.res}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderBoxers() {
+            const container = document.getElementById('grid-boxers');
+            container.innerHTML = boxers.map(b => `
+                <div class="glass-card" style="padding: 12px; text-align:center;">
+                    <img src="${b.photo || 'https://via.placeholder.com/150/eeeeee/cccccc?text=No+Photo'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; margin-bottom:8px; border:2px solid #333;">
+                    <div class="clickable-name" onclick="openProfile('${b.id}')" style="font-weight: 800; font-size: 0.9rem;">${b.name}</div>
+                    <div style="font-size: 0.75rem; color: #666;">${b.win}-${b.loss}-${b.draw} (${b.ko} KO)</div>
+                </div>
+            `).join('');
+        }
+
+        // FUNGSI BARU: Mengisi Datalist untuk fitur pencarian
+        function populateSearchList() {
+            const datalist = document.getElementById('fighter-list');
+            datalist.innerHTML = boxers.map(b => `<option value="${b.name}">${b.div}</option>`).join('');
+        }
+
+        // ==========================================
+        // LOGIK POPUP PROFIL
+        // ==========================================
+        function openProfileByName(name) {
+            const b = boxers.find(x => x.name === name);
+            if(b) openProfile(b.id);
+        }
+
+        function openProfile(id) {
+            const b = boxers.find(x => x.id === id);
+            if(!b) return;
+
+            document.getElementById('mod-name').innerText = b.name;
+            document.getElementById('mod-w').innerText = b.win;
+            document.getElementById('mod-l').innerText = b.loss;
+            document.getElementById('mod-d').innerText = b.draw;
+            document.getElementById('mod-ko-w').innerText = b.ko + " KO";
+            document.getElementById('mod-photo').src = b.photo || 'https://via.placeholder.com/200x250/eeeeee/cccccc?text=No+Image';
+            
+            let totalFights = b.win + b.loss + b.draw;
+            let koPct = totalFights > 0 ? Math.round((b.ko / totalFights) * 100) + "%" : "0%";
+
+            document.getElementById('mod-div').innerText = b.div || '-';
+            document.getElementById('mod-bouts').innerText = totalFights;
+            document.getElementById('mod-kopct').innerText = koPct;
+            document.getElementById('mod-nat').innerHTML = b.nat ? `🇮🇩 ${b.nat}` : '-';
+            document.getElementById('mod-stance').innerText = b.stance || '-';
+            document.getElementById('mod-height').innerText = b.height || '-';
+
+            const myBouts = bouts.filter(fight => fight.f1 === b.name || fight.f2 === b.name);
+            const tbody = document.getElementById('mod-history');
+            
+            if(myBouts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Belum ada pertandingan</td></tr>`;
+            } else {
+                tbody.innerHTML = [...myBouts].reverse().map(fight => {
+                    let opponent = fight.f1 === b.name ? fight.f2 : fight.f1;
+                    let resultBadge = "";
+                    if (fight.res.includes("Seri")) resultBadge = `<span class="res-badge badge-D">D</span>`;
+                    else if (fight.res.includes(b.name)) resultBadge = `<span class="res-badge badge-W">W</span>`;
+                    else resultBadge = `<span class="res-badge badge-L">L</span>`;
+
+                    return `<tr><td style="width:25%; color:#666;">${fight.date || '-'}</td><td style="font-weight:700; color:#111;">${opponent}</td><td style="text-align:right;">${resultBadge}</td></tr>`;
+                }).join('');
+            }
+            document.getElementById('profile-modal').style.display = 'flex';
+        }
+
+        function closeProfile(e) {
+            if(e.target.id === 'profile-modal' || e.target.classList.contains('close-btn')) {
+                document.getElementById('profile-modal').style.display = 'none';
+            }
+        }
+
+        // ==========================================
+        // DATA INPUT & MUTASI
+        // ==========================================
+        function addBoxer(e) {
+            e.preventDefault();
+            const newName = document.getElementById('add-name').value;
+            // Cek jika nama sudah ada agar tidak ganda
+            if(boxers.find(b => b.name.toLowerCase() === newName.toLowerCase())) {
+                return alert("Nama atlet sudah terdaftar! Gunakan nama lain (misal tambahkan nama belakang).");
+            }
+
+            boxers.push({
+                id: Date.now().toString(),
+                name: newName,
+                div: document.getElementById('add-div').value,
+                nat: document.getElementById('add-nat').value,
+                stance: document.getElementById('add-stance').value,
+                height: document.getElementById('add-height').value,
+                photo: document.getElementById('add-photo').value,
+                win: parseInt(document.getElementById('add-w').value) || 0,
+                loss: parseInt(document.getElementById('add-l').value) || 0,
+                draw: parseInt(document.getElementById('add-d').value) || 0,
+                ko: parseInt(document.getElementById('add-ko').value) || 0
+            });
+            saveDB(); e.target.reset(); alert("Atlet berhasil disimpan!");
+        }
+
+        function addBout(e) {
+            e.preventDefault();
+            const name1 = document.getElementById('bout-1').value;
+            const name2 = document.getElementById('bout-2').value;
+            
+            if (name1 === name2) return alert("Pilih dua atlet berbeda!");
+
+            let f1 = boxers.find(b => b.name === name1);
+            let f2 = boxers.find(b => b.name === name2);
+            
+            // Validasi jika salah ketik
+            if (!f1) return alert(`Atlet dengan nama "${name1}" tidak ditemukan! Pastikan ejaan sesuai dari daftar.`);
+            if (!f2) return alert(`Atlet dengan nama "${name2}" tidak ditemukan! Pastikan ejaan sesuai dari daftar.`);
+
+            const winner = document.getElementById('bout-winner').value;
+            const isKO = document.getElementById('bout-ko').checked;
+            const boutDate = document.getElementById('bout-date').value;
+            let resText = "";
+
+            if (winner === "1") {
+                f1.win += 1; f2.loss += 1; if(isKO) f1.ko += 1;
+                resText = `${f1.name} Menang ${isKO ? '(KO/TKO)' : '(Poin)'}`;
+            } else if (winner === "2") {
+                f2.win += 1; f1.loss += 1; if(isKO) f2.ko += 1;
+                resText = `${f2.name} Menang ${isKO ? '(KO/TKO)' : '(Poin)'}`;
+            } else {
+                f1.draw += 1; f2.draw += 1; resText = "Seri (Draw)";
+            }
+
+            bouts.push({ date: boutDate, f1: f1.name, f2: f2.name, res: resText });
+            saveDB(); e.target.reset(); alert("Hasil pertandingan disinkronkan!");
+        }
+
+        function renderH2H() {
+            const name1 = document.getElementById('h2h-1').value;
+            const name2 = document.getElementById('h2h-2').value;
+            const view = document.getElementById('h2h-view');
+
+            if (!name1 || !name2) return;
+
+            const f1 = boxers.find(b => b.name === name1);
+            const f2 = boxers.find(b => b.name === name2);
+            
+            if(!f1 || !f2) {
+                view.innerHTML = "Menunggu pilihan atlet yang valid...";
+                return;
+            }
+
+            view.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center;">
+                    <div style="text-align: right;">
+                        <img src="${f1.photo || 'https://via.placeholder.com/80/eeeeee/cccccc'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; margin-bottom:5px;">
+                        <div style="color: #ef4444; font-weight: 800; font-size: 1rem;">${f1.name}</div>
+                        <div style="font-size: 1.2rem; font-weight: 900; margin: 4px 0;">${f1.win}-${f1.loss}-${f1.draw}</div>
+                        <div style="font-size: 0.75rem; color: #f59e0b;">${f1.ko} KO</div>
+                    </div>
+                    <div style="font-size: 0.65rem; color: #555; font-weight: 800; display: flex; flex-direction: column; gap: 8px;">
+                        <span>FOTO</span>
+                        <span>NAMA</span>
+                        <span>REKOR</span>
+                        <span>TOTAL KO</span>
+                    </div>
+                    <div style="text-align: left;">
+                        <img src="${f2.photo || 'https://via.placeholder.com/80/eeeeee/cccccc'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; margin-bottom:5px;">
+                        <div style="color: #3b82f6; font-weight: 800; font-size: 1rem;">${f2.name}</div>
+                        <div style="font-size: 1.2rem; font-weight: 900; margin: 4px 0;">${f2.win}-${f2.loss}-${f2.draw}</div>
+                        <div style="font-size: 0.75rem; color: #f59e0b;">${f2.ko} KO</div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
